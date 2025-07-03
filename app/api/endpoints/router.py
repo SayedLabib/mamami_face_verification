@@ -363,3 +363,144 @@ async def health_check(
             "error": str(e),
             "timestamp": datetime.now().isoformat()
         }
+
+
+@router.get("/vector-diagnostics")
+async def vector_diagnostics(
+    qdrant_service: QdrantService = Depends(get_qdrant_service)
+):
+    """
+    API endpoint to check the status of the vector database
+    
+    Returns information about collections, number of vectors, and configuration
+    """
+    try:
+        # Get information about the collection
+        collection_info = qdrant_service.client.get_collection(
+            collection_name=qdrant_service.collection_name
+        )
+        
+        # Count of vectors
+        vectors_count = collection_info.vectors_count
+        
+        # Get sample points if available (limited to 5)
+        sample_points = []
+        if vectors_count > 0:
+            try:
+                # Get a sample of points to verify structure
+                search_results = qdrant_service.client.search(
+                    collection_name=qdrant_service.collection_name,
+                    query_vector=[0.1] * qdrant_service.vector_size,  # Dummy vector for search
+                    limit=5,
+                    with_payload=True,
+                    with_vectors=False  # Don't include full vector data to keep response small
+                )
+                
+                for point in search_results:
+                    sample_points.append({
+                        "id": str(point.id),
+                        "score": point.score,
+                        "user_id": point.payload.get("user_id", "unknown"),
+                        "metadata": point.payload.get("metadata", {}),
+                        "created_at": point.payload.get("created_at", "unknown")
+                    })
+            except Exception as e:
+                sample_points = [f"Error getting sample points: {str(e)}"]
+        
+        # Get collection configuration
+        config = {
+            "vector_size": qdrant_service.vector_size,
+            "distance": str(collection_info.config.params.vectors.distance),
+            "collection_name": qdrant_service.collection_name,
+            "similarity_threshold": settings.similarity_threshold
+        }
+        
+        return {
+            "status": "ok",
+            "vectors_count": vectors_count,
+            "config": config,
+            "sample_points": sample_points
+        }
+    except Exception as e:
+        logger.error(f"Error in vector diagnostics endpoint: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Error retrieving vector database information: {str(e)}"
+        }
+
+
+@router.get("/vector-debug")
+async def vector_debug(
+    qdrant_service: QdrantService = Depends(get_qdrant_service)
+):
+    """
+    API endpoint to check the status of vector storage and similarity search
+    
+    Returns detailed information about vectors stored in Qdrant
+    """
+    try:
+        # Get collection info
+        collection_info = qdrant_service.client.get_collection(
+            collection_name=qdrant_service.collection_name
+        )
+        
+        # Get some sample points to check embedding structure
+        points = []
+        if collection_info.vectors_count > 0:
+            try:
+                result = qdrant_service.client.scroll(
+                    collection_name=qdrant_service.collection_name,
+                    limit=2,  # Just get a couple for diagnostic
+                    with_payload=True,
+                    with_vectors=True  # Include actual vectors to check format
+                )
+                
+                points = result[0]
+                
+                # Safely extract vector info for debugging
+                vectors_info = []
+                for point in points:
+                    vector_sample = point.vector[:5] + ["..."] + point.vector[-5:] if point.vector else []
+                    vector_info = {
+                        "id": str(point.id),
+                        "vector_length": len(point.vector) if point.vector else 0,
+                        "vector_sample": vector_sample,
+                        "vector_stats": {
+                            "min": min(point.vector) if point.vector else None,
+                            "max": max(point.vector) if point.vector else None,
+                            "has_zeros": 0.0 in point.vector if point.vector else None,
+                            "has_nan": any(str(v) == "nan" for v in point.vector) if point.vector else None
+                        } if point.vector else None
+                    }
+                    vectors_info.append(vector_info)
+                
+                return {
+                    "collection": collection_info.dict(),
+                    "vectors_count": collection_info.vectors_count,
+                    "sample_points": [
+                        {
+                            "id": str(p.id),
+                            "payload": p.payload,
+                        } for p in points
+                    ],
+                    "vectors_info": vectors_info
+                }
+                
+            except Exception as e:
+                return {
+                    "collection": collection_info.dict(),
+                    "vectors_count": collection_info.vectors_count,
+                    "error_getting_samples": str(e)
+                }
+        else:
+            return {
+                "collection": collection_info.dict(),
+                "vectors_count": 0,
+                "message": "No vectors in collection"
+            }
+    
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Error accessing vector database"
+        }

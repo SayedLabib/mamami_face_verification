@@ -4,11 +4,23 @@ This project is a robust face recognition system that uses Face++ API for face d
 
 ## Architecture
 
-The system consists of two main processes:
+The system consists of two main services working together:
+
+1. **Face++ API**: Provides high-quality face detection and embedding generation
+   - Commercial API with high accuracy
+   - Requires API key and secret from [Face++ website](https://www.faceplusplus.com/)
+   - System falls back to local processing if API authentication fails
+
+2. **Qdrant Vector Database**: Stores and searches face embeddings
+   - High-performance vector similarity search
+   - Maintains the database of all enrolled faces
+   - Required even when using Face++ API for the actual face processing
+
+The system workflow consists of two main processes:
 
 1. **User Enrollment**:
    - Takes a user's NID/Passport image and personal information
-   - Detects face using Face++ API
+   - Detects face using Face++ API or local fallback
    - Extracts face embedding (feature vector)
    - Stores embedding with user metadata in Qdrant Vector DB
 
@@ -17,6 +29,33 @@ The system consists of two main processes:
    - Detects face and extracts embedding
    - Searches for similar face embeddings in Qdrant DB
    - Verifies identity based on similarity threshold
+
+## Configuration
+
+### Face++ API Setup
+
+This system uses Face++ API for face detection and embedding generation. To set it up:
+
+1. Create an account on [Face++ website](https://www.faceplusplus.com/)
+2. Create a new API Key in their dashboard
+3. Update your `.env` file with your Face++ API credentials:
+
+```
+FACEPP_API_KEY=your_api_key_here
+FACEPP_API_SECRET=your_api_secret_here
+```
+
+If you don't provide valid Face++ API credentials, the system will automatically fall back to using local OpenCV-based face detection and embedding generation.
+
+### Similarity Threshold
+
+The system uses a similarity threshold to determine whether a face is a match. This can be adjusted in the `.env` file:
+
+```
+SIMILARITY_THRESHOLD=0.5
+```
+
+Lower values (like 0.5) are more permissive and will match more faces, while higher values (like 0.8) are stricter and require more similar faces.
 
 ## Project Structure
 
@@ -237,82 +276,3 @@ Response:
   "message": "User enrolled successfully"
 }
 ```
-
-### 2. Verify Face Match
-
-```
-POST /verify-match
-```
-
-This endpoint checks if a new face image matches any stored face embeddings.
-
-Request:
-- `image`: Face image file to verify (multipart form data)
-
-Response:
-```json
-{
-  "success": true,
-  "verified": true,
-  "matches": [
-    {
-      "user_id": "12345",
-      "similarity_score": 0.92,
-      "full_name": "John Doe",
-      "email": "john@example.com"
-    }
-  ],
-  "top_match": {
-    "user_id": "12345",
-    "similarity_score": 0.92,
-    "full_name": "John Doe",
-    "email": "john@example.com"
-  },
-  "message": "Face match found"
-}
-```
-
-## Local Development Setup
-
-1. **Clone the Repository**:
-   ```
-   git clone <repository-url>
-   cd mamai_face_recognition_SMT
-   ```
-
-2. **Create a Virtual Environment**:
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
-
-3. **Install Dependencies**:
-   ```
-   pip install -r requirements.txt
-   ```
-
-4. **Set up Environment Variables**:
-   Create a `.env` file with required configurations (see Environment Setup section)
-
-5. **Run the Application**:
-   ```
-   uvicorn app.main:app --reload
-   ```
-
-## Docker Deployment
-
-1. **Create the `.env` file** with your configuration
-
-2. **Build and Run with Docker Compose**:
-   ```
-   docker-compose up -d
-   ```
-
-3. **Access the API**:
-   Open your browser and navigate to `http://localhost:8000/docs` for Swagger UI documentation
-
-## Notes
-
-- This system uses the Face++ API for face detection and embedding generation
-- Adjust the similarity threshold based on testing and security requirements
-- This application has no built-in authentication - add security measures if deploying to production

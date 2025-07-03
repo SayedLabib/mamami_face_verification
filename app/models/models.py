@@ -64,8 +64,6 @@ class VerificationMatch(BaseModel):
     """Model for a single verification match"""
     user_id: str
     similarity_score: float
-    full_name: str
-    email: str  # Changed from EmailStr to str
     
 class VerificationResponse(BaseModel):
     """Response model for face verification"""
