@@ -241,7 +241,7 @@ async def system_diagnostics():
             results["dns_config"]["error"] = str(e)
         
         # Check API connectivity using our client with DNS settings
-        api_url = settings.facepp_api_url
+        api_url = "https://api-us.faceplusplus.com"
         
         # Import service class for creating client
         from app.services.service import FacePlusPlusService
@@ -270,10 +270,14 @@ async def system_diagnostics():
                 results["api_connectivity"]["direct_ip_error"] = str(e2)
         
         # Get environment variables (without secrets)
-        results["environment"]["api_url"] = settings.facepp_api_url
+        results["environment"]["detect_url"] = settings.fpp_detect_url
+        results["environment"]["search_url"] = settings.fpp_search_url
+        results["environment"]["create_url"] = settings.fpp_create_url
+        results["environment"]["add_url"] = settings.fpp_add_url 
+        results["environment"]["get_detail_url"] = settings.fpp_get_detail_url
         results["environment"]["fallback_enabled"] = settings.use_local_fallback
         results["environment"]["similarity_threshold"] = settings.similarity_threshold
-        results["environment"]["docker"] = "/.dockerenv" in os.listdir("/")
+        results["environment"]["docker"] = os.path.exists("/.dockerenv")
         
         return results
     except Exception as e:
@@ -388,9 +392,11 @@ async def vector_diagnostics(
         if vectors_count > 0:
             try:
                 # Get a sample of points to verify structure
+                # Make sure vector_size is set and valid
+                vector_size = qdrant_service.vector_size or int(os.getenv("QDRANT_VECTOR_SIZE", 512))
                 search_results = qdrant_service.client.search(
                     collection_name=qdrant_service.collection_name,
-                    query_vector=[0.1] * qdrant_service.vector_size,  # Dummy vector for search
+                    query_vector=[0.1] * vector_size,  # Dummy vector for search
                     limit=5,
                     with_payload=True,
                     with_vectors=False  # Don't include full vector data to keep response small
@@ -461,16 +467,31 @@ async def vector_debug(
                 vectors_info = []
                 for point in points:
                     vector_sample = point.vector[:5] + ["..."] + point.vector[-5:] if point.vector else []
+                    
+                    # Calculate vector statistics
+                    vector_stats = None
+                    if point.vector:
+                        import numpy as np
+                        vec_np = np.array(point.vector)
+                        norm = np.linalg.norm(vec_np)
+                        
+                        vector_stats = {
+                            "min": min(point.vector),
+                            "max": max(point.vector),
+                            "mean": float(np.mean(vec_np)),
+                            "std": float(np.std(vec_np)),
+                            "norm": float(norm),
+                            "zeros_count": int(np.count_nonzero(vec_np == 0)),
+                            "zeros_percent": float(np.count_nonzero(vec_np == 0) / len(vec_np) * 100),
+                            "has_nan": bool(np.isnan(vec_np).any()),
+                        }
+                    
                     vector_info = {
                         "id": str(point.id),
+                        "user_id": point.payload.get("user_id", "unknown"),
                         "vector_length": len(point.vector) if point.vector else 0,
                         "vector_sample": vector_sample,
-                        "vector_stats": {
-                            "min": min(point.vector) if point.vector else None,
-                            "max": max(point.vector) if point.vector else None,
-                            "has_zeros": 0.0 in point.vector if point.vector else None,
-                            "has_nan": any(str(v) == "nan" for v in point.vector) if point.vector else None
-                        } if point.vector else None
+                        "vector_stats": vector_stats
                     }
                     vectors_info.append(vector_info)
                 
@@ -498,6 +519,124 @@ async def vector_debug(
                 "vectors_count": 0,
                 "message": "No vectors in collection"
             }
+    except Exception as e:
+        logger.error(f"Error in vector debug endpoint: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Error accessing vector database: {str(e)}"
+        }
+        
+@router.post("/compare-vectors")
+async def compare_vectors(
+    image1: UploadFile = File(...),
+    image2: UploadFile = File(...),
+    face_service: FaceRecognitionService = Depends(get_face_recognition_service)
+):
+    """
+    API endpoint to compare two face images directly
+    
+    This is useful for testing the quality of the face embedding algorithm
+    without involving the vector database
+    """
+    try:
+        # Read and encode both images
+        image1_data = await image1.read()
+        image2_data = await image2.read()
+        
+        image1_base64 = base64.b64encode(image1_data).decode('utf-8')
+        image2_base64 = base64.b64encode(image2_data).decode('utf-8')
+        
+        # Get embeddings from both images
+        # Step 1: Detect faces
+        detection1 = await face_service.facepp_service.detect_face(image1_base64)
+        detection2 = await face_service.facepp_service.detect_face(image2_base64)
+        
+        if not detection1.success or not detection1.face_detected:
+            return {
+                "success": False,
+                "message": f"No face detected in first image: {detection1.message}"
+            }
+            
+        if not detection2.success or not detection2.face_detected:
+            return {
+                "success": False,
+                "message": f"No face detected in second image: {detection2.message}"
+            }
+        
+        # Step 2: Generate embeddings
+        embedding1_result = await face_service.facepp_service.generate_embedding(
+            detection1.cropped_face, detection1.face_token
+        )
+        
+        embedding2_result = await face_service.facepp_service.generate_embedding(
+            detection2.cropped_face, detection2.face_token
+        )
+        
+        if not embedding1_result.success or not embedding1_result.embedding:
+            return {
+                "success": False,
+                "message": f"Failed to generate embedding for first image: {embedding1_result.message}"
+            }
+            
+        if not embedding2_result.success or not embedding2_result.embedding:
+            return {
+                "success": False,
+                "message": f"Failed to generate embedding for second image: {embedding2_result.message}"
+            }
+        
+        # Step 3: Calculate similarity between embeddings
+        import numpy as np
+        
+        embedding1 = np.array(embedding1_result.embedding)
+        embedding2 = np.array(embedding2_result.embedding)
+        
+        # Normalize both embeddings
+        norm1 = np.linalg.norm(embedding1)
+        norm2 = np.linalg.norm(embedding2)
+        
+        if norm1 > 0:
+            embedding1 = embedding1 / norm1
+        if norm2 > 0:
+            embedding2 = embedding2 / norm2
+            
+        # Calculate cosine similarity
+        similarity = np.dot(embedding1, embedding2)
+        
+        # Calculate Euclidean distance
+        euclidean_distance = np.linalg.norm(embedding1 - embedding2)
+        
+        # Return detailed comparison results
+        return {
+            "success": True,
+            "similarity": float(similarity),
+            "euclidean_distance": float(euclidean_distance),
+            "is_match": similarity >= settings.similarity_threshold,
+            "threshold": settings.similarity_threshold,
+            "embedding1_stats": {
+                "length": len(embedding1),
+                "min": float(np.min(embedding1)),
+                "max": float(np.max(embedding1)),
+                "mean": float(np.mean(embedding1)),
+                "std": float(np.std(embedding1)),
+                "norm": float(np.linalg.norm(embedding1)),
+                "zeros_percent": float(np.count_nonzero(embedding1 == 0) / len(embedding1) * 100)
+            },
+            "embedding2_stats": {
+                "length": len(embedding2),
+                "min": float(np.min(embedding2)),
+                "max": float(np.max(embedding2)),
+                "mean": float(np.mean(embedding2)),
+                "std": float(np.std(embedding2)),
+                "norm": float(np.linalg.norm(embedding2)),
+                "zeros_percent": float(np.count_nonzero(embedding2 == 0) / len(embedding2) * 100)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error comparing vectors: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Error comparing images: {str(e)}"
+        }
     
     except Exception as e:
         return {

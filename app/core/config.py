@@ -12,9 +12,14 @@ class Settings(BaseSettings):
     admin_email: str = "admin@example.com"
     
     # Face++ API Configuration
-    facepp_api_url: str
     facepp_api_key: str
     facepp_api_secret: str
+    # Face++ API URLs
+    fpp_create_url: str = "https://api-us.faceplusplus.com/facepp/v3/faceset/create"
+    fpp_detect_url: str = "https://api-us.faceplusplus.com/facepp/v3/detect"
+    fpp_search_url: str = "https://api-us.faceplusplus.com/facepp/v3/search"
+    fpp_add_url: str = "https://api-us.faceplusplus.com/facepp/v3/faceset/addface"
+    fpp_get_detail_url: str = "https://api-us.faceplusplus.com/facepp/v3/faceset/getdetail"
     
     # Qdrant Configuration
     qdrant_host: str
@@ -36,9 +41,9 @@ qdrant_host = "qdrant" if is_docker() else os.getenv("QDRANT_HOST", "localhost")
 
 # Create settings instance with explicit values from environment variables
 settings = Settings(
-    facepp_api_url=os.getenv("FACEPP_API_URL", "https://api-us.faceplusplus.com/facepp/v3"),
     facepp_api_key=os.getenv("FACEPP_API_KEY", ""),
     facepp_api_secret=os.getenv("FACEPP_API_SECRET", ""),
+    # Face++ URLs are already set with defaults in the Settings class
     qdrant_host=qdrant_host,
     qdrant_port=int(os.getenv("QDRANT_PORT", "6333")),
     qdrant_collection_name=os.getenv("QDRANT_COLLECTION_NAME", "face_embeddings"),
