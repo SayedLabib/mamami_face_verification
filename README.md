@@ -256,7 +256,7 @@ Response:
 - `top_match`: The best match if any is found
 - `message`: Process result message
 
-### 3. System Diagnostics
+### 3. System Diagnostics and system design
 
 ```
 GET /diagnostics
