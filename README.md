@@ -1,278 +1,122 @@
-# Face Recognition System with Qdrant Vector DB
+# Face Recognition Duplicate Detection System
 
-This project is a robust face recognition system that uses Face++ API for face detection and embedding generation, with a local OpenCV-based fallback option. It uses Qdrant Vector Database for efficient similarity search of face embeddings.
-
-## Architecture
-
-The system consists of two main services working together:
-
-1. **Face++ API**: Provides high-quality face detection and embedding generation
-   - Commercial API with high accuracy
-   - Requires API key and secret from [Face++ website](https://www.faceplusplus.com/)
-   - System falls back to local processing if API authentication fails
-
-2. **Qdrant Vector Database**: Stores and searches face embeddings
-   - High-performance vector similarity search
-   - Maintains the database of all enrolled faces
-   - Required even when using Face++ API for the actual face processing
-
-The system workflow consists of two main processes:
-
-1. **User Enrollment**:
-   - Takes a user's NID/Passport image and personal information
-   - Detects face using Face++ API or local fallback
-   - Extracts face embedding (feature vector)
-   - Stores embedding with user metadata in Qdrant Vector DB
-
-2. **Face Verification**:
-   - Takes a new image of a user's face
-   - Detects face and extracts embedding
-   - Searches for similar face embeddings in Qdrant DB
-   - Verifies identity based on similarity threshold
-
-## Configuration
-
-### Face++ API Setup
-
-This system uses Face++ API for face detection and embedding generation. To set it up:
-
-1. Create an account on [Face++ website](https://www.faceplusplus.com/)
-2. Create a new API Key in their dashboard
-3. Update your `.env` file with your Face++ API credentials:
-
-```
-FACEPP_API_KEY=your_api_key_here
-FACEPP_API_SECRET=your_api_secret_here
-```
-
-If you don't provide valid Face++ API credentials, the system will automatically fall back to using local OpenCV-based face detection and embedding generation.
-
-### Similarity Threshold
-
-The system uses a similarity threshold to determine whether a face is a match. This can be adjusted in the `.env` file:
-
-```
-SIMILARITY_THRESHOLD=0.5
-```
-
-Lower values (like 0.5) are more permissive and will match more faces, while higher values (like 0.8) are stricter and require more similar faces.
-
-## Project Structure
-
-```
-mamai_face_recognition_SMT/
-├── app/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   └── security.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── models.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── endpoints/
-│   │   │   ├── __init__.py
-│   │   │   └── router.py
-│   │   └── dependencies.py
-│   └── services/
-│       ├── __init__.py
-│       └── service.py
-├── dns_config/  # DNS configuration for API access
-├── .env
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
-```
+A FastAPI-based system that uses Face++ API to prevent duplicate account creation by detecting and comparing face images from NID/Passport documents. The system uses in-memory storage to compare uploaded face images and detect duplicates.
 
 ## Features
 
-- **Face Detection**: Detects faces in ID documents and selfies
-- **Face Embedding**: Extracts feature vectors for face comparison
-- **Vector Database**: Efficient storage and similarity search of face vectors
-- **User Enrollment**: Register users with face biometrics
-- **Face Verification**: Verify identity through face comparison
-- **API Endpoints**: Simple RESTful API for operations
-- **Docker Support**: Easy deployment with Docker and Docker Compose
-- **Local Fallback**: Falls back to OpenCV-based face processing if external API fails
-- **DNS Resolution**: Robust DNS configuration for reliable API access
-- **Diagnostics API**: Built-in system diagnostics for troubleshooting
-- **Auto-Recovery**: Automatic retry logic for transient API failures
+- Face detection using Face++ API
+- Direct face comparison between uploaded images
+- In-memory storage for face tokens during session
+- Multiple endpoints for different verification workflows
+- Docker and Docker Compose support
+- Nginx reverse proxy configuration
+- RESTful API endpoints for face verification and comparison
 
-## Environment Setup
+## Prerequisites
 
-1. Create a `.env` file with the following configurations:
+- Python 3.10+
+- Docker and Docker Compose (optional)
+- Face++ API credentials
 
-```
-# Face++ API Configuration
-FACEPP_API_URL=https://api-us.faceplusplus.com/facepp/v3
-FACEPP_API_KEY=your_face_plus_plus_api_key
-FACEPP_API_SECRET=your_face_plus_plus_api_secret
+## Local Development Setup
 
-# Qdrant Configuration
-QDRANT_HOST=qdrant  # Use 'localhost' for non-Docker setup
-QDRANT_PORT=6333
-QDRANT_COLLECTION_NAME=face_embeddings
-QDRANT_VECTOR_SIZE=512  # Size of face embeddings derived from Face++ landmarks
-
-# Application Settings
-SIMILARITY_THRESHOLD=0.7  # Similarity threshold for face verification
-USE_LOCAL_FALLBACK=true  # Use local face processing if API fails
-LOG_LEVEL=INFO
+1. Clone the repository
+```sh
+git clone < https://github.com/syeda-ai-dev/Duplicate-Account-Creation-Prevention-System.git >
+cd Duplicate-Account-Creation-Prevention-System
 ```
 
-## Running the Application
-
-### Using Docker (Recommended)
-
-1. Make sure Docker and Docker Compose are installed
-2. Run the application using the provided start script:
-
-```bash
-# On Windows
-start.bat
-
-# On Linux/Mac
-chmod +x startup.sh
-./startup.sh
+2. Create and activate a virtual environment
+```sh
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
 ```
 
-3. Access the API documentation at http://localhost:8000/docs
-
-### Manual Setup
-
-1. Install requirements:
-```bash
+3. Install dependencies
+```sh
 pip install -r requirements.txt
 ```
 
-2. Run the application:
-```bash
-uvicorn app.main:app --reload
+4. Create a .env file with your Face++ API configurations
+```sh
+FPP_API_KEY = 'your-face-plus-plus-api-key'
+FPP_API_SECRET = 'your-face-plus-plus-secret-key'
+FPP_CREATE = 'https://api-us.faceplusplus.com/facepp/v3/faceset/create'
+FPP_DETECT = 'https://api-us.faceplusplus.com/facepp/v3/detect'
+FPP_SEARCH = 'https://api-us.faceplusplus.com/facepp/v3/search'
+FPP_ADD = 'https://api-us.faceplusplus.com/facepp/v3/faceset/addface'
+FPP_GET_DETAIL = 'https://api-us.faceplusplus.com/facepp/v3/faceset/getdetail'
 ```
 
-## Local Fallback Implementation
-
-The system uses a robust approach to face recognition:
-
-1. **Primary Method**: Uses the Face++ API for high-quality face detection and embedding generation
-2. **Fallback Method**: If the primary API fails, falls back to local processing:
-   - Face Detection: Uses OpenCV's Haar Cascade classifier
-   - Face Embedding: Generates HOG (Histogram of Oriented Gradients) features
-
-The fallback mechanism works transparently and ensures system resilience even when:
-- External API is unavailable
-- Network connectivity issues occur
-- API rate limits are exceeded
-
-You can enable/disable the fallback by setting `USE_LOCAL_FALLBACK=true|false` in the `.env` file.
-
-## DNS Configuration & API Connectivity
-
-The system is designed to work with both external API calls and local fallback:
-
-1. **DNS Configuration**: Instead of modifying system files, we use:
-   - Custom DNS resolvers in application code
-   - Docker's `extra_hosts` for hostname resolution
-   - Direct IP fallback in code when hostname resolution fails
-
-2. **Testing DNS Resolution**: Use the included test script:
-   ```bash
-   python test_dns.py
-   ```
-
-## Troubleshooting
-
-If you experience API connectivity issues:
-
-1. Check the diagnostic endpoint at `/diagnostics`
-2. Run the DNS test script inside the Docker container:
-   ```bash
-   docker-compose exec web bash /app/dns_test.sh
-   ```
-   This will test DNS resolution, API connectivity, and show current DNS configuration.
-3. Check if the local fallback is working:
-   ```bash
-   docker-compose logs web | grep "fallback"
-   ```
-4. Ensure your API key is valid and has sufficient quota
-5. If DNS issues persist, try the direct IP approach in `.env`:
-   ```
-   LUXAN_API_URL=http://104.21.23.75
-   ```
-
-## Testing
-
-The project includes a test script to verify the entire system works correctly:
-
-```bash
-# Run the test script
-python test_system.py --id-image path/to/id_image.jpg --face-image path/to/face_image.jpg
+5. Run the application locally using Uvicorn
+```sh
+uvicorn com.mhire.app.main:app --reload
 ```
+The API will be available at ```http://localhost:8000```, with Swagger UI: ```http://localhost:8000/docs```
 
-This script tests:
-1. API connectivity and DNS resolution
-2. User enrollment with ID/passport image
-3. Face verification with a separate face image
-4. Both primary API path and local fallback functionality
+## Docker Setup
+
+1. Build and run using Docker Compose
+```sh
+docker-compose up --build -d
+```
+This will:
+
+- Build the FastAPI application container
+- Set up Nginx reverse proxy
+- Expose the service on port 8080
+- Access the API at ```http://your-ip-address:8080```, with Swagger UI: ```http://your-ip-address:8080/docs```
+
+2. Stop the containers
+```sh
+docker-compose down
+```
 
 ## API Endpoints
 
-### 1. Extract Face and Store
+### Face Verification Endpoints:
 
-```
-POST /extract-and-store
-```
+1. **POST /api/v1/face/upload**
+   - Upload a face image (NID/Passport) for duplicate detection
+   - Returns duplicate status and confidence score if duplicate found
+   - Saves new faces to in-memory storage if no duplicates found
+   - Optional session_id parameter for grouping faces
 
-This endpoint extracts a face from an ID/passport image and stores its embedding in the database.
+2. **POST /api/v1/face/compare**
+   - Compare two uploaded face images directly
+   - Returns confidence score and match status
+   - Useful for direct face-to-face comparison
 
-Request:
-- `user_id`: (Optional) Unique identifier for the user (auto-generated UUID if not provided)
-- `full_name`: (Optional) User's full name (defaults to "Unknown User")
-- `email`: (Optional) User's email address (defaults to "unknown@example.com")
-- `image`: ID/Passport image file (multipart form data)
-- `additional_info`: (Optional) Additional user metadata as JSON
+3. **GET /api/v1/face/stats**
+   - Get statistics about stored faces and sessions
+   - Returns total faces, sessions, and metadata
 
-Response:
+4. **DELETE /api/v1/face/clear**
+   - Clear stored face data for specific session or all sessions
+   - Optional session_id parameter
 
-### 2. Verify Face Match
+### Job Description Endpoint:
+- **POST /api/v1/job/description**: Generate structured job descriptions
 
-```
-POST /verify-match
-```
+## How It Works
 
-This endpoint checks if a submitted face matches any stored faces.
+1. **Face Upload**: Upload a face image from NID/Passport document
+2. **Face Detection**: System detects and extracts face features using Face++ API
+3. **Duplicate Check**: Compares the detected face with previously stored faces
+4. **Confidence Scoring**: Returns confidence score for potential matches
+5. **Storage**: Saves new unique faces to in-memory storage for future comparisons
 
-Request:
-- `image`: Face image file (multipart form data)
+## Configuration
 
-Response:
-- `success`: Boolean indicating if processing was successful
-- `verified`: Boolean indicating if the face matches any stored face
-- `matches`: List of potential matches with similarity scores
-- `top_match`: The best match if any is found
-- `message`: Process result message
+The system uses environment variables for configuration:
+- Face++ API credentials for face detection and comparison
+- OpenAI API settings for job description generation (optional)
+- Confidence threshold for duplicate detection (default: 90%)
 
-### 3. System Diagnostics and system design
+## Security Features
 
-```
-GET /diagnostics
-```
-
-This endpoint provides system diagnostics to help troubleshoot API connectivity issues.
-
-Response:
-- `dns_check`: Results of DNS resolution tests
-- `api_connectivity`: Status of API connectivity
-- `environment`: Current environment settings
-```json
-{
-  "success": true,
-  "user_id": "12345",
-  "embedding_id": "abcdef-12345",
-  "message": "User enrolled successfully"
-}
-```
+- File type validation for uploaded images
+- Rate limiting for API requests
+- Error handling and logging
+- Session-based face grouping

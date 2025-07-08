@@ -1,21 +1,13 @@
-fastapi>=0.95.0
-uvicorn>=0.22.0
-pydantic>=2.0.0
-httpx>=0.24.0
-python-dotenv>=1.0.0
-pytest>=7.3.1
-pytest-asyncio>=0.21.0
-qdrant-client>=1.3.1
-python-multipart>=0.0.6
-pillow>=9.5.0
-numpy>=1.24.0
-requests>=2.30.0
-pydantic-settings>=2.0.0
-opencv-python-headless>=4.7.0.72
-scikit-image>=0.20.0
-tenacity>=8.2.2  # Retry utility
-dnspython>=2.3.0  # Enhanced DNS functionality
-nest-asyncio>=1.5.6  # For nested asyncio loops
-scipy>=1.10.0  # Scientific computing
-matplotlib>=3.7.0  # For visualization if needed
-loguru>=0.7.0  # Better logging
+fastapi
+uvicorn[standard]
+python-dotenv
+httpx
+pydantic
+typing-extensions
+numpy
+requests
+aiofiles
+python-multipart
+aiohttp
+openai
+Pillow
