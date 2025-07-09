@@ -11,3 +11,5 @@ python-multipart
 aiohttp
 openai
 Pillow
+pytesseract
+opencv-python

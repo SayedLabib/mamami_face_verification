@@ -12,6 +12,7 @@ class VerificationResponse(BaseModel):
     face_token: Optional[str] = None
     is_duplicate: bool = False
     matches: Optional[List[FaceVerificationMatch]] = None
+    extracted_name: Optional[str] = None  # Add this field
 
 class ErrorResponse(BaseModel):
     """Standard error response model"""

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 
 from app.services.verification_system.face_verification.face_verification import FaceVerification
 from app.services.verification_system.face_verification.face_verification_schema import VerificationResponse, ErrorResponse
+from app.services.ocr_service.ocr_manager import OCRManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -84,60 +85,71 @@ async def upload_face_image(
 
 @router.post("/compare", 
     response_model=VerificationResponse,
-    summary="Compare two face images directly",
-    description="Compare two uploaded face images to check if they belong to the same person"
+    summary="Compare NID/Passport image with a face image",
+    description="Compare a face image from NID/Passport document with another face image and extract name from the document"
 )
 async def compare_face_images(
-    file1: UploadFile = File(..., description="First face image"),
-    file2: UploadFile = File(..., description="Second face image")
+    nid_passport_image: UploadFile = File(..., description="NID/Passport image (first image)"),
+    face_image: UploadFile = File(..., description="Face image to compare with (second image)")
 ) -> VerificationResponse:
     """
-    Compare two face images directly.
+    Compare NID/Passport image with a face image and extract name from the document.
     
-    - **file1**: First image file containing a face
-    - **file2**: Second image file containing a face
+    - **nid_passport_image**: NID/Passport image file (must contain both face and text)
+    - **face_image**: Face image file to compare with
     
     Returns:
     - **status**: "success" if comparison completed
     - **confidence**: Confidence score for the face match
     - **is_duplicate**: Boolean indicating if faces match above threshold
+    - **extracted_name**: Name extracted from the NID/Passport document
     """
     try:
         # Validate file types
-        if not file1.content_type.startswith('image/') or not file2.content_type.startswith('image/'):
+        if not nid_passport_image.content_type.startswith('image/') or not face_image.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="Both files must be images")
             
         # Read image data
-        image_data1 = await file1.read()
-        image_data2 = await file2.read()
+        nid_passport_data = await nid_passport_image.read()
+        face_image_data = await face_image.read()
         
-        if not image_data1 or not image_data2:
+        if not nid_passport_data or not face_image_data:
             raise HTTPException(status_code=400, detail="Empty image file(s)")
             
-        # Create FaceVerification instance
+        # Create service instances
         face_verifier = FaceVerification()
+        ocr_manager = OCRManager()
+        
+        # Extract name from NID/Passport image
+        logger.info("Extracting name from NID/Passport image...")
+        extracted_name = ocr_manager.extract_name_from_nid_passport(nid_passport_data)
         
         # Detect faces in both images
-        face_token1 = await face_verifier.fpp_manager.detect_face(image_data1)
-        face_token2 = await face_verifier.fpp_manager.detect_face(image_data2)
+        logger.info("Detecting face in NID/Passport image...")
+        face_token1 = await face_verifier.fpp_manager.detect_face(nid_passport_data)
+        
+        logger.info("Detecting face in comparison image...")
+        face_token2 = await face_verifier.fpp_manager.detect_face(face_image_data)
         
         if not face_token1:
-            raise HTTPException(status_code=400, detail="No face detected in first image")
+            raise HTTPException(status_code=400, detail="No face detected in NID/Passport image")
         if not face_token2:
-            raise HTTPException(status_code=400, detail="No face detected in second image")
+            raise HTTPException(status_code=400, detail="No face detected in comparison image")
         
         # Compare the faces
+        logger.info("Comparing faces...")
         confidence = await face_verifier.fpp_manager.compare_faces(face_token1, face_token2)
         is_duplicate = confidence >= face_verifier.confidence_threshold
         
-        message = "Faces match" if is_duplicate else "Faces do not match"
+        message = f"Faces match (confidence: {confidence:.2f}%)" if is_duplicate else f"Faces do not match (confidence: {confidence:.2f}%)"
         
         return VerificationResponse(
             status="success",
             message=message,
             confidence=confidence,
             is_duplicate=is_duplicate,
-            face_token=face_token1  # Return the first face token
+            face_token=face_token1,
+            extracted_name=extracted_name
         )
         
     except HTTPException as he:

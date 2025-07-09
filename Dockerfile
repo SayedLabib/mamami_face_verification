@@ -7,6 +7,14 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Install required packages and dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
