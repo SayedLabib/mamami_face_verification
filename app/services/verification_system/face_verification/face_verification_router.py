@@ -5,7 +5,14 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 
 from app.services.verification_system.face_verification.face_verification import FaceVerification
 from app.services.verification_system.face_verification.face_verification_schema import VerificationResponse, ErrorResponse
-from app.services.ocr_service.ocr_manager import OCRManager
+
+# Add the OCR import with proper indentation (at module level)
+try:
+    from app.services.ocr_service.ocr_manager import OCRManager
+    logging.getLogger(__name__).info("OCR Manager imported successfully")
+except Exception as e:
+    logging.getLogger(__name__).error(f"Failed to import OCR Manager: {str(e)}")
+    OCRManager = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,67 +27,61 @@ router = APIRouter(
     }
 )
 
-@router.post("/upload", 
+# Constants for file validation
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/bmp", "image/tiff"]
+
+def validate_file_upload(file: UploadFile, file_name: str) -> None:
+    """Validate uploaded file size and type"""
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail=f"{file_name} must be an image file")
+    
+    # Additional validation for specific image types
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"{file_name} must be one of: {', '.join(ALLOWED_TYPES)}"
+        )
+
+@router.post("/upload",
     response_model=VerificationResponse,
-    summary="Upload a face image for duplicate detection",
-    description="Upload a face image (NID/Passport) to detect and store if it's not a duplicate of previously uploaded images"
+    summary="Upload and verify face image",
+    description="Upload a face image and check if it matches any previously stored faces"
 )
 async def upload_face_image(
-    file: UploadFile = File(...),
-    session_id: str = Query(default="default", description="Session identifier for grouping faces")
+    file: UploadFile = File(..., description="Face image file to upload and verify"),
+    session_id: str = Query("default", description="Session ID for grouping faces")
 ) -> VerificationResponse:
     """
-    Upload a face image for duplicate detection.
+    Upload a face image and verify against stored faces.
     
-    - **file**: Image file containing a face (NID/Passport photo)
-    - **session_id**: Optional session identifier for grouping faces
+    - **file**: Image file containing a face
+    - **session_id**: Optional session identifier for grouping related faces
     
-    Returns:
-    - **status**: "success" if new face, "duplicate_found" if duplicate detected
-    - **is_duplicate**: Boolean indicating if face is a duplicate
-    - **confidence**: Confidence score for the best match (if duplicate)
-    - **face_token**: Unique token for the detected face
-    - **matches**: List of matching faces with confidence scores
+    Returns verification results including confidence scores and match status.
     """
     try:
         # Validate file type
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="File must be an image")
+        validate_file_upload(file, "Face image")
             
         # Read image data
         image_data = await file.read()
         if not image_data:
             raise HTTPException(status_code=400, detail="Empty image file")
             
-        # Create FaceVerification instance
+        # Create face verification instance
         face_verifier = FaceVerification()
         
-        # Process the image for face verification
+        # Process the uploaded face
         result = await face_verifier.verify_face(image_data, session_id)
         
-        # Return verification response
-        return VerificationResponse(
-            status=result["status"],
-            message=result["message"],
-            confidence=result.get("confidence"),
-            face_token=result["face_token"],
-            is_duplicate=result["is_duplicate"],
-            matches=result.get("matches")
-        )
+        return VerificationResponse(**result)
         
     except HTTPException as he:
-        # Handle specific case for "No face detected in image"
-        if "No face detected in image" in str(he.detail):
-            return VerificationResponse(
-                status="error",
-                message="No face detected in image",
-                is_duplicate=False,
-                matches=None
-            )
-        # Re-raise other HTTP exceptions as they are already properly formatted
         raise he
     except Exception as e:
-        logger.error(f"Error during face verification: {str(e)}")
+        logger.error(f"Error processing face upload: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/compare", 
@@ -106,23 +107,46 @@ async def compare_face_images(
     """
     try:
         # Validate file types
-        if not nid_passport_image.content_type.startswith('image/') or not face_image.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="Both files must be images")
+        validate_file_upload(nid_passport_image, "NID/Passport image")
+        validate_file_upload(face_image, "Face image")
             
         # Read image data
         nid_passport_data = await nid_passport_image.read()
         face_image_data = await face_image.read()
+        
+        # Validate file sizes after reading
+        if len(nid_passport_data) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413, 
+                detail=f"NID/Passport image is too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB"
+            )
+        
+        if len(face_image_data) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413, 
+                detail=f"Face image is too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB"
+            )
         
         if not nid_passport_data or not face_image_data:
             raise HTTPException(status_code=400, detail="Empty image file(s)")
             
         # Create service instances
         face_verifier = FaceVerification()
-        ocr_manager = OCRManager()
         
-        # Extract name from NID/Passport image
-        logger.info("Extracting name from NID/Passport image...")
-        extracted_name = ocr_manager.extract_name_from_nid_passport(nid_passport_data)
+        # Extract name from NID/Passport image with enhanced debugging
+        extracted_name = None
+        if OCRManager:
+            try:
+                logger.info("Creating OCR manager instance...")
+                ocr_manager = OCRManager()
+                logger.info("Extracting name from NID/Passport image...")
+                extracted_name = ocr_manager.extract_name(nid_passport_data)
+                logger.info(f"OCR extraction result: {extracted_name}")
+            except Exception as e:
+                logger.error(f"OCR extraction failed: {str(e)}")
+                extracted_name = None
+        else:
+            logger.error("OCR Manager not available")
         
         # Detect faces in both images
         logger.info("Detecting face in NID/Passport image...")
@@ -143,6 +167,8 @@ async def compare_face_images(
         
         message = f"Faces match (confidence: {confidence:.2f}%)" if is_duplicate else f"Faces do not match (confidence: {confidence:.2f}%)"
         
+        logger.info(f"Face comparison completed. Match: {is_duplicate}, Confidence: {confidence:.2f}%, Extracted Name: {extracted_name}")
+        
         return VerificationResponse(
             status="success",
             message=message,
@@ -157,6 +183,7 @@ async def compare_face_images(
     except Exception as e:
         logger.error(f"Error during face comparison: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/stats",
     summary="Get face verification statistics",
@@ -203,3 +230,62 @@ async def clear_face_data(
     except Exception as e:
         logger.error(f"Error clearing face data: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/test-ocr",
+    summary="Test OCR extraction (debugging)",
+    description="Test OCR name extraction from NID/Passport image independently"
+)
+async def test_ocr_extraction(
+    image: UploadFile = File(..., description="NID/Passport image for testing OCR")
+):
+    """Test OCR extraction independently for debugging purposes"""
+    try:
+        # Validate file type and size
+        validate_file_upload(image, "Test image")
+        
+        image_data = await image.read()
+        
+        # Validate file size after reading
+        if len(image_data) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413, 
+                detail=f"Image is too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB"
+            )
+        
+        if OCRManager:
+            try:
+                ocr_manager = OCRManager()
+                
+                # Get raw text and extracted name
+                raw_text = ocr_manager.extract_text_from_image(image_data)
+                extracted_name = ocr_manager.extract_name(image_data)
+                
+                return {
+                    "status": "success",
+                    "raw_text": raw_text,
+                    "extracted_name": extracted_name,
+                    "ocr_available": True,
+                    "raw_text_length": min(len(raw_text), 2500) if raw_text else 0
+                }
+            except Exception as e:
+                logger.error(f"OCR test failed: {str(e)}")
+                return {
+                    "status": "error",
+                    "message": str(e),
+                    "ocr_available": True,
+                    "error_type": "ocr_processing_error"
+                }
+        else:
+            return {
+                "status": "error",
+                "message": "OCR Manager not available - import failed",
+                "ocr_available": False
+            }
+            
+    except Exception as e:
+        logger.error(f"Test OCR endpoint failed: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "error_type": "endpoint_error"
+        }
