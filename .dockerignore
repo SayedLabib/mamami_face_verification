@@ -1,7 +1,184 @@
-pycache/
-*.pyc
-*.pyo
-*.pyd
-*.sqlite3
+# =============================================================================
+# DOCKER IGNORE FILE FOR MAMAMI FACE VERIFICATION & DATING CHAT SYSTEM
+# =============================================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
 venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.cache
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker files (avoid recursive copying)
+Dockerfile*
+docker-compose*.yml
 .dockerignore
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.temp/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+
+# Development and testing
+test_api.sh
+tests/
+test_*.py
+*_test.py
+
+# Configuration files that shouldn't be in container
+.env.local
+.env.development
+.env.test
+config.local.py
+settings.local.py
+
+# Backup files
+*.bak
+*.backup
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Uploaded files (if storing locally)
+uploads/
+images/
+faces/
+static/uploads/
+
+# Model cache and training data
+models/
+*.model
+*.pkl
+*.joblib
+
+# Performance and profiling
+*.prof
+*.perf
+
+# Local development tools
+.mypy_cache/
+.ruff_cache/
+.pylint.d/
+
+# Package managers
+.npm/
+.yarn/
+package-lock.json
+yarn.lock
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Local configuration overrides
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Security sensitive files
+*.pem
+*.key
+*.crt
+secrets/

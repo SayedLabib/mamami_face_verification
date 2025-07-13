@@ -63,7 +63,7 @@ db.sqlite3-journal
 
 # Flask stuff:
 instance/
-.webassets-cache
+.webaskets-cache
 
 # Scrapy stuff:
 .scrapy
@@ -129,6 +129,10 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.development
+.env.test
+.env.production
 .venv
 env/
 venv/
@@ -165,10 +169,117 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
 
 # Ruff stuff:
 .ruff_cache/
 
 # PyPI configuration file
 .pypirc
+
+# =============================================================================
+# PROJECT SPECIFIC IGNORES
+# =============================================================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# Logs
+logs/
+*.log
+app.log
+error.log
+access.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+.tmp
+.temp
+
+# API Keys and sensitive data
+.env.secret
+.env.private
+secrets/
+*.pem
+*.key
+*.crt
+
+# Face images and uploads (if any)
+uploads/
+images/
+faces/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+
+# Model files and cache
+models/
+*.model
+*.pkl
+*.joblib
+
+# Test files and coverage
+test_results/
+.coverage
+htmlcov/
+pytest.ini
+.pytest_cache/
+
+# Development tools
+.mypy_cache/
+.ruff_cache/
+.pylint.d/
+
+# MacOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Backup files
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Performance data
+*.prof
+*.perf
+
+# Local configuration
+config.local.py
+settings.local.py
