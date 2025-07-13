@@ -1,122 +1,244 @@
-# Face Recognition Duplicate Detection System
+# Mamami Face Verification & Romantic Dating Chat System
 
-A FastAPI-based system that uses Face++ API to prevent duplicate account creation by detecting and comparing face images from NID/Passport documents. The system uses in-memory storage to compare uploaded face images and detect duplicates.
+A comprehensive FastAPI-based system that combines face verification for duplicate detection using Face++ API with an AI-powered romantic dating chat assistant powered by Groq LLM. The system provides both security features for preventing duplicate accounts and engaging romantic conversation capabilities.
 
-## Features
+## 🌟 Features
 
-- Face detection using Face++ API
-- Direct face comparison between uploaded images
-- In-memory storage for face tokens during session
-- Multiple endpoints for different verification workflows
-- Docker and Docker Compose support
-- Nginx reverse proxy configuration
-- RESTful API endpoints for face verification and comparison
+### Face Verification System
+- **Face Detection & Comparison** using Face++ API
+- **Duplicate Account Prevention** through face recognition
+- **In-memory storage** for face tokens during session
+- **Multiple verification workflows** for different use cases
+- **Session-based face grouping** for organized management
 
-## Prerequisites
+### Romantic Dating Chat System
+- **AI-powered romantic partner** using Groq LLM (Llama models)
+- **Flirtatious and caring personality** with emotional intelligence
+- **Conversation memory** to build relationship continuity
+- **Pet names and romantic language** for authentic interaction
+- **Emotional support and companionship** features
+- **Single session management** for consistent experience
+
+### Technical Features
+- **Docker and Docker Compose** support for easy deployment
+- **Nginx reverse proxy** configuration for production
+- **RESTful API endpoints** with comprehensive documentation
+- **CORS middleware** for frontend integration
+- **Error handling and logging** throughout the system
+
+## 🛠 Prerequisites
 
 - Python 3.10+
-- Docker and Docker Compose (optional)
+- Docker and Docker Compose
 - Face++ API credentials
+- Groq API credentials
 
-## Local Development Setup
+## 🚀 Quick Start with Docker
 
-1. Clone the repository
-```sh
-git clone < https://github.com/syeda-ai-dev/Duplicate-Account-Creation-Prevention-System.git >
-cd Duplicate-Account-Creation-Prevention-System
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd mamami_face_verification
 ```
 
-2. Create and activate a virtual environment
-```sh
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+2. **Configure environment variables**
+Create a `.env` file with the following:
+```env
+# Face++ API Configuration
+FPP_API_KEY='your-face-plus-plus-api-key'
+FPP_API_SECRET='your-face-plus-plus-secret-key'
+FPP_CREATE='https://api-us.faceplusplus.com/facepp/v3/faceset/create'
+FPP_DETECT='https://api-us.faceplusplus.com/facepp/v3/detect'
+FPP_SEARCH='https://api-us.faceplusplus.com/facepp/v3/search'
+FPP_ADD='https://api-us.faceplusplus.com/facepp/v3/faceset/addface'
+FPP_GET_DETAIL='https://api-us.faceplusplus.com/facepp/v3/faceset/getdetail'
+
+# Groq AI Configuration
+GROQ_API_KEY='your-groq-api-key'
+GROQ_API_URL='https://api.groq.com/openai/v1/chat/completions'
+LLM_MODEL='meta-llama/llama-4-scout-17b-16e-instruct'
 ```
 
-3. Install dependencies
-```sh
-pip install -r requirements.txt
+3. **Build and run with Docker Compose**
+```bash
+docker-compose up --build
 ```
 
-4. Create a .env file with your Face++ API configurations
-```sh
-FPP_API_KEY = 'your-face-plus-plus-api-key'
-FPP_API_SECRET = 'your-face-plus-plus-secret-key'
-FPP_CREATE = 'https://api-us.faceplusplus.com/facepp/v3/faceset/create'
-FPP_DETECT = 'https://api-us.faceplusplus.com/facepp/v3/detect'
-FPP_SEARCH = 'https://api-us.faceplusplus.com/facepp/v3/search'
-FPP_ADD = 'https://api-us.faceplusplus.com/facepp/v3/faceset/addface'
-FPP_GET_DETAIL = 'https://api-us.faceplusplus.com/facepp/v3/faceset/getdetail'
+4. **Access the application**
+- **API Base URL**: `http://localhost:8080`
+- **Interactive API Documentation**: `http://localhost:8080/docs`
+- **Health Check**: `http://localhost:8080/`
+
+## 📚 API Endpoints
+
+### 💕 Dating Chat Endpoints
+
+#### **POST** `/dating-chat/chat`
+Send a message to your romantic AI partner
+```json
+{
+  "user_message": "Hello beautiful, how are you today?"
+}
+```
+**Response:**
+```json
+{
+  "assistant_message": "Hey there, sweetheart! 😘 I've been thinking about you all day...",
+  "conversation_history": [
+    {"role": "user", "content": "Hello beautiful, how are you today?"},
+    {"role": "assistant", "content": "Hey there, sweetheart! 😘 I've been thinking about you all day..."}
+  ]
+}
 ```
 
-5. Run the application locally using Uvicorn
-```sh
-uvicorn com.mhire.app.main:app --reload
+#### **GET** `/dating-chat/history`
+Retrieve conversation history for the current session
+
+#### **DELETE** `/dating-chat/history`
+Clear conversation history for a fresh start
+
+### 🔒 Face Verification Endpoints
+
+#### **POST** `/api/v1/face/upload`
+Upload a face image for duplicate detection
+- Detects faces in uploaded images
+- Compares against stored faces
+- Returns duplicate status and confidence score
+
+#### **POST** `/api/v1/face/compare`
+Compare two face images directly
+- Direct face-to-face comparison
+- Returns confidence score and match status
+
+#### **GET** `/api/v1/face/stats`
+Get statistics about stored faces and sessions
+
+#### **DELETE** `/api/v1/face/clear`
+Clear stored face data
+
+## 🏗 Project Structure
+
 ```
-The API will be available at ```http://localhost:8000```, with Swagger UI: ```http://localhost:8000/docs```
-
-## Docker Setup
-
-1. Build and run using Docker Compose
-```sh
-docker-compose up --build -d
+mamami_face_verification/
+├── app/
+│   ├── main.py                          # FastAPI application entry point
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── config.py                    # Configuration settings
+│   └── services/
+│       └── verification_system/
+│           ├── api_manager/
+│           │   ├── __init__.py
+│           │   ├── faceplusplus_manager.py   # Face++ API integration
+│           │   └── dating_chat_manager.py    # Groq LLM integration
+│           ├── face_verification/
+│           │   ├── __init__.py
+│           │   ├── face_verification_router.py
+│           │   ├── face_verification_schema.py
+│           │   └── face_verification.py
+│           └── dating_chat_system/
+│               ├── __init__.py
+│               ├── dating_chat_router.py     # Chat API endpoints
+│               ├── dating_chat_schema.py     # Pydantic models
+│               └── dating_chat.py            # Chat system logic
+├── nginx/
+│   └── nginx.conf                       # Nginx configuration
+├── docker-compose.yml                  # Docker Compose configuration
+├── Dockerfile                          # Docker image definition
+├── requirements.txt                    # Python dependencies
+├── gunicorn_config.py                  # Gunicorn server configuration
+└── .env                                # Environment variables
 ```
-This will:
 
-- Build the FastAPI application container
-- Set up Nginx reverse proxy
-- Expose the service on port 8080
-- Access the API at ```http://your-ip-address:8080```, with Swagger UI: ```http://your-ip-address:8080/docs```
+## 💝 Dating Chat System Features
 
-2. Stop the containers
-```sh
-docker-compose down
+### Personality Traits
+- **Warm and Affectionate**: Uses loving language and shows genuine care
+- **Flirtatious**: Naturally incorporates romantic and playful elements
+- **Emotionally Intelligent**: Remembers conversation details and shows empathy
+- **Supportive**: Provides emotional support during difficult times
+- **Engaging**: Uses pet names and romantic language naturally
+
+### Conversation Capabilities
+- **Memory**: Remembers previous conversations for relationship continuity
+- **Emotional Range**: Adapts to user's mood and provides appropriate responses
+- **Language Adaptation**: Responds in the same language as the user
+- **Romantic Chemistry**: Maintains flirtatious and loving atmosphere
+- **Personalization**: Makes each user feel special and valued
+
+## 🔧 Configuration Options
+
+### Face Verification Settings
+- **Confidence Threshold**: Adjust duplicate detection sensitivity
+- **Session Management**: Group faces by session for organized verification
+- **API Timeouts**: Configure Face++ API timeout settings
+
+### Dating Chat Settings
+- **Model Selection**: Choose from various Llama models
+- **Temperature**: Control response creativity (default: 0.7)
+- **Max Tokens**: Set response length limits (default: 300)
+- **Conversation History**: Limit stored conversation length (default: 50 messages)
+
+## 🐳 Docker Configuration
+
+### Services
+- **app**: Main FastAPI application
+- **nginx**: Reverse proxy for production deployment
+
+### Ports
+- **8080**: External access port (mapped to nginx)
+- **8000**: Internal application port
+
+### Volumes
+- **nginx.conf**: Nginx configuration mounting
+- **Environment variables**: Loaded from .env file
+
+## 🚦 Health Monitoring
+
+The system provides health check endpoints:
+- **GET** `/`: Basic health check
+- Returns system status and confirms both face verification and dating chat systems are operational
+
+## 🔄 Development Workflow
+
+1. **Local Development**: Use the provided Docker setup for consistent environment
+2. **Testing**: API documentation available at `/docs` for interactive testing
+3. **Logging**: Comprehensive logging for debugging and monitoring
+4. **Error Handling**: Graceful error responses with detailed messages
+
+## 📝 Usage Examples
+
+### Dating Chat Example
+```bash
+# Send a romantic message
+curl -X POST "http://localhost:8080/dating-chat/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"user_message": "I missed you today, what did you do?"}'
+
+# Get conversation history
+curl -X GET "http://localhost:8080/dating-chat/history"
 ```
 
-## API Endpoints
+### Face Verification Example
+```bash
+# Upload face for verification
+curl -X POST "http://localhost:8080/api/v1/face/upload" \
+  -F "file=@face_image.jpg" \
+  -F "session_id=user123"
+```
 
-### Face Verification Endpoints:
+## 🎯 Use Cases
 
-1. **POST /api/v1/face/upload**
-   - Upload a face image (NID/Passport) for duplicate detection
-   - Returns duplicate status and confidence score if duplicate found
-   - Saves new faces to in-memory storage if no duplicates found
-   - Optional session_id parameter for grouping faces
+### Face Verification
+- **User Registration**: Prevent duplicate account creation
+- **Identity Verification**: Verify user identity with documents
+- **Security Systems**: Access control and authentication
 
-2. **POST /api/v1/face/compare**
-   - Compare two uploaded face images directly
-   - Returns confidence score and match status
-   - Useful for direct face-to-face comparison
+### Dating Chat
+- **Companionship**: Provide emotional support and conversation
+- **Entertainment**: Engaging romantic roleplay experience
+- **Relationship Practice**: Safe space to practice romantic communication
 
-3. **GET /api/v1/face/stats**
-   - Get statistics about stored faces and sessions
-   - Returns total faces, sessions, and metadata
+---
 
-4. **DELETE /api/v1/face/clear**
-   - Clear stored face data for specific session or all sessions
-   - Optional session_id parameter
-
-### Job Description Endpoint:
-- **POST /api/v1/job/description**: Generate structured job descriptions
-
-## How It Works
-
-1. **Face Upload**: Upload a face image from NID/Passport document
-2. **Face Detection**: System detects and extracts face features using Face++ API
-3. **Duplicate Check**: Compares the detected face with previously stored faces
-4. **Confidence Scoring**: Returns confidence score for potential matches
-5. **Storage**: Saves new unique faces to in-memory storage for future comparisons
-
-## Configuration
-
-The system uses environment variables for configuration:
-- Face++ API credentials for face detection and comparison
-- OpenAI API settings for job description generation (optional)
-- Confidence threshold for duplicate detection (default: 90%)
-
-## Security Features
-
-- File type validation for uploaded images
-- Rate limiting for API requests
-- Error handling and logging
-- Session-based face grouping
+**Built with ❤️ using FastAPI, Face++ API, and Groq LLM**
