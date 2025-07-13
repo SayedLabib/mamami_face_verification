@@ -1,9 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
-
-class FaceVerificationMatch(BaseModel):
-    confidence: float
-    face_token: str
+from typing import Optional
 
 class VerificationResponse(BaseModel):
     status: str
@@ -11,8 +7,6 @@ class VerificationResponse(BaseModel):
     confidence: Optional[float] = None
     face_token: Optional[str] = None
     is_duplicate: bool = False
-    matches: Optional[List[FaceVerificationMatch]] = None
-    extracted_name: Optional[str] = None  # Add this field
 
 class ErrorResponse(BaseModel):
     """Standard error response model"""

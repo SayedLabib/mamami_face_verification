@@ -4,12 +4,7 @@ python-dotenv
 httpx
 pydantic
 typing-extensions
-numpy
 requests
 aiofiles
 python-multipart
 aiohttp
-openai
-Pillow
-pytesseract
-opencv-python

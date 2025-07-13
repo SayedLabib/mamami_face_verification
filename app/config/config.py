@@ -23,3 +23,10 @@ class Config:
             cls._instance.openai_model = os.getenv("OPENAI_MODEL")
 
         return cls._instance
+
+class Settings:
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_API_URL: str = os.getenv("GROQ_API_URL", "")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "")
+
+settings = Settings()        
