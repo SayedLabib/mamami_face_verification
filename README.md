@@ -242,3 +242,5 @@ curl -X POST "http://localhost:8080/api/v1/face/upload" \
 ---
 
 **Built with ❤️ using FastAPI, Face++ API, and Groq LLM/OpenAI API**
+
+Updated the .env file with client's API
