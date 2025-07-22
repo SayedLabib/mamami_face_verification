@@ -65,9 +65,9 @@ docker-compose up --build
 ```
 
 4. **Access the application**
-- **API Base URL**: `http://localhost:8080`
-- **Interactive API Documentation**: `http://localhost:8080/docs`
-- **Health Check**: `http://localhost:8080/`
+- **API Base URL**: `http://localhost:8062`
+- **Interactive API Documentation**: `http://localhost:8062/docs`
+- **Health Check**: `http://localhost:8062/`
 
 ## 📚 API Endpoints
 
@@ -186,8 +186,8 @@ mamami_face_verification/
 - **nginx**: Reverse proxy for production deployment
 
 ### Ports
-- **8080**: External access port (mapped to nginx)
-- **8000**: Internal application port
+- **8062**: External access port (mapped to nginx)
+- **8062**: Internal application port
 
 ### Volumes
 - **nginx.conf**: Nginx configuration mounting
@@ -211,18 +211,18 @@ The system provides health check endpoints:
 ### Dating Chat Example
 ```bash
 # Send a romantic message
-curl -X POST "http://localhost:8080/dating-chat/chat" \
+curl -X POST "http://localhost:8062/dating-chat/chat" \
   -H "Content-Type: application/json" \
   -d '{"user_message": "I missed you today, what did you do?"}'
 
 # Get conversation history
-curl -X GET "http://localhost:8080/dating-chat/history"
+curl -X GET "http://localhost:8062/dating-chat/history"
 ```
 
 ### Face Verification Example
 ```bash
 # Upload face for verification
-curl -X POST "http://localhost:8080/api/v1/face/upload" \
+curl -X POST "http://localhost:8062/api/v1/face/upload" \
   -F "file=@face_image.jpg" \
   -F "session_id=user123"
 ```

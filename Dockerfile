@@ -28,8 +28,8 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 # Copy the app code into the container
 COPY . /app/
 
-# Expose port 8000 (Uvicorn will run here)
-EXPOSE 8000
+# Expose port 8062 (Uvicorn will run here)
+EXPOSE 8062
 
 # Run the Uvicorn server
 # This path matches your actual project structure

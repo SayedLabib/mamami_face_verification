@@ -6,7 +6,7 @@ services:
     build: .
     container_name: fvjd_app
     expose:
-      - '8000'
+      - '8062'
     env_file:
       - .env
     networks:
@@ -16,7 +16,7 @@ services:
     image: nginx:alpine
     container_name: nginx_proxy
     ports:
-      - '8080:80'  # Map port 8080 on host to port 80 on the container
+      - '8062:80'  # Map port 8062 on host to port 80 on the container
     networks:
       - fvjd-network
     volumes:
